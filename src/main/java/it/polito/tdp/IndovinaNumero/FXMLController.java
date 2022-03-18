@@ -1,11 +1,14 @@
 /**
- * Sample Skeleton for 'Scene.fxml' Controller Class
- */
+ * Sample Skeleton for 'Scene.fxml' Controller Class 
+ Scene.fxml è la View , FXMLController è il Controller, Model sta in un package a parte dove confluiranno TUTTE le classi che ci servono per gestire logica applicativa*/
 
 package it.polito.tdp.IndovinaNumero;
 
 import java.net.URL;
+import java.security.InvalidParameterException;
 import java.util.ResourceBundle;
+
+import it.polito.tdp.IndovinaNumero.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -14,12 +17,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 
 public class FXMLController {
+	private Model model;//PASSO 1//dichiaro il mio attributo Model nella classe Controller per farli interagire --> POI VADO AD ISTANZIARLO NELL'ENTRYPOINT (potrei istanziarlo anche qui, ma poi dovrei rifare la procedura per ogni Controller nel caso ne avessi più di uno)
 	
-	private int segreto;
-	private final int TMAX = 8;
-	private final int NMAX = 100;
-	private int tentativiFatti;
-
+	
     @FXML // ResourceBundle that was given to the FXMLLoader
     private ResourceBundle resources;
 
@@ -47,12 +47,11 @@ public class FXMLController {
 
     @FXML
     void doNuovaPartita(ActionEvent event) {
-    	//gestione di una nuova partita
-    	this.segreto = (int)((Math.random() * NMAX) +1);
-    	this.tentativiFatti = 0;
+    	this.model.nuovaPartita();
+    	//gestione di una nuova partita --> da portare all'interno del model (prima era in Controller) 
     	
-    	//gestione interfaccia
-    	txtTentativi.setText(Integer.toString(TMAX));
+    	//gestione interfaccia --> compito del controller
+    	txtTentativi.setText(Integer.toString(this.model.getTMAX())); //non gli do più tmax ma this.model.gettmax
     	hboxTentativi.setDisable(false);
     	txtRisultato.clear();    	
     }
@@ -62,7 +61,7 @@ public class FXMLController {
     	String ts = txtTentativo.getText();
     	int tentativo;
     	
-    	//controllo 1 -> input numerico
+    	//controllo 1 -> input numerico?
     	try {
     		tentativo = Integer.parseInt(ts);
     	} catch (NumberFormatException e) {
@@ -70,36 +69,28 @@ public class FXMLController {
     		return;
     	}
     	
-    	//controllo 2 -> intervallo numerico corretto
-    	if(tentativo < 1 || tentativo > NMAX) {
-    		txtRisultato.setText("Devi inserire un tentativo numerico tra 1 e 100!");
-    		return;
+    	int risultato;
+    	try {
+    	risultato = this.model.tentativo(tentativo); //il modello restituirà -1, 0 oppure 1, se = 0 vinco
     	}
+    	catch (InvalidParameterException ip) { txtRisultato.setText(ip.getMessage());//nomeEccezione.getMessage() restituisce il messaggio scritto nel costruttore dell'eccezione (vedi model)
+    	        return; } 
+    	catch (IllegalStateException is) { txtRisultato.setText(is.getMessage());
+    	       hboxTentativi.setDisable(true); return; }
     	
-    	this.tentativiFatti ++;
     	
-    	if(tentativo == this.segreto) {
-    		//HAI VINTO
-    		txtRisultato.setText("HAI INDOVINATO CON " + this.tentativiFatti + " TENTATIVI");
-    		hboxTentativi.setDisable(true);
-    		return;
-    	}
     	
-    	if(this.tentativiFatti == TMAX) {
-    		//esaurito i tentativi -> HAI PERSO
-    		txtRisultato.setText("HAI PERSO! IL SEGRETO ERA: " + this.segreto);
-    		hboxTentativi.setDisable(true);
-    		return;
-    	}
     	
-    	if(tentativo < this.segreto) {
+    	if(risultato == 0) { //vedi commento riga sopra //HAI VINTO
+    		txtRisultato.setText("HAI INDOVINATO CON " + this.model.getTentativiFatti() + " TENTATIVI");
+    		hboxTentativi.setDisable(true);}
+    	else if(risultato == -1) {
     		txtRisultato.setText("Tentativo Troppo Basso!");
-    	} else {
+       }else if(risultato == 1) {
     		txtRisultato.setText("Tentativo Troppo Alto!");
     	}
     	
-    	txtTentativi.setText(Integer.toString(TMAX-tentativiFatti));
-    	
+    	txtTentativi.setText(Integer.toString(this.model.getTMAX()-this.model.getTentativiFatti()));
     }
 
     @FXML // This method is called by the FXMLLoader when initialization is complete
@@ -112,4 +103,7 @@ public class FXMLController {
 
     }
 
+    public void setModel(Model modelparametro) { //PASSO 3 - VEDI PASSO 2 per spiegazioni
+    	this.model= modelparametro;
+    }
 }
